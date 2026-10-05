@@ -11,8 +11,11 @@ const artworks = [
 ];
 
 if (featuredFrame && featuredPieceCurrent && featuredPieceNext) {
+  const previousArtworkButton = featuredFrame.querySelector('.featured-arrow--previous');
+  const nextArtworkButton = featuredFrame.querySelector('.featured-arrow--next');
   let artworkIndex = 0;
   let activePieceIndex = 0;
+  let isTransitioning = false;
   let rotationTimer;
 
   const setArtwork = (piece, artwork) => {
@@ -22,6 +25,9 @@ if (featuredFrame && featuredPieceCurrent && featuredPieceNext) {
   };
 
   const showArtwork = (index) => {
+    if (isTransitioning) return;
+
+    isTransitioning = true;
     const nextIndex = (index + artworks.length) % artworks.length;
     const nextArt = artworks[nextIndex];
     const currentPiece = [featuredPieceCurrent, featuredPieceNext][activePieceIndex];
@@ -35,6 +41,8 @@ if (featuredFrame && featuredPieceCurrent && featuredPieceNext) {
     incomingPiece.style.filter = 'blur(0) brightness(1) saturate(1)';
     currentPiece.style.opacity = '0';
     currentPiece.style.filter = 'blur(1.2px) brightness(0.94) saturate(0.9)';
+    if (previousArtworkButton) previousArtworkButton.disabled = true;
+    if (nextArtworkButton) nextArtworkButton.disabled = true;
 
     window.setTimeout(() => {
       artworkIndex = nextIndex;
@@ -42,20 +50,32 @@ if (featuredFrame && featuredPieceCurrent && featuredPieceNext) {
       currentPiece.classList.remove(...artworks.map((item) => item.style));
       currentPiece.style.opacity = '0';
       currentPiece.style.filter = 'blur(1.2px) brightness(0.94) saturate(0.9)';
+      isTransitioning = false;
+      if (previousArtworkButton) previousArtworkButton.disabled = false;
+      if (nextArtworkButton) nextArtworkButton.disabled = false;
     }, 1200);
   };
 
   const stopRotation = () => window.clearInterval(rotationTimer);
   const startRotation = () => {
     stopRotation();
-    if (!document.hidden && !window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    if (!document.hidden && !featuredFrame.matches(':hover') && !window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
       rotationTimer = window.setInterval(() => showArtwork(artworkIndex + 1), 5000);
     }
+  };
+
+  const changeArtwork = (direction) => {
+    if (isTransitioning) return;
+    stopRotation();
+    showArtwork(artworkIndex + direction);
+    startRotation();
   };
 
   featuredFrame.addEventListener('mouseenter', stopRotation);
   featuredFrame.addEventListener('mouseleave', startRotation);
   document.addEventListener('visibilitychange', startRotation);
+  previousArtworkButton?.addEventListener('click', () => changeArtwork(-1));
+  nextArtworkButton?.addEventListener('click', () => changeArtwork(1));
 
   setArtwork(featuredPieceCurrent, artworks[0]);
   featuredPieceCurrent.style.opacity = '1';
@@ -104,5 +124,6 @@ if (artworkLightbox && lightboxImage && lightboxClose && lightboxZoom) {
     if (event.target === artworkLightbox) artworkLightbox.close();
   });
 }
+
 
 
