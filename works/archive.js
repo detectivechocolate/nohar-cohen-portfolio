@@ -6,6 +6,8 @@ const detailDescription = document.querySelector('#archive-record-description');
 const detailReference = document.querySelector('#archive-reference');
 const detailSeries = document.querySelector('#archive-series-name');
 const detailRecord = document.querySelector('#archive-record-name');
+const detailSize = document.querySelector('#archive-size');
+const detailMedium = document.querySelector('#archive-medium');
 const breadcrumb = document.querySelector('#archive-breadcrumb');
 const resultCount = document.querySelector('#archive-result-count');
 const imageGrid = document.querySelector('#archive-image-grid');
@@ -26,13 +28,34 @@ const seriesDescriptions = {
   C: 'Series C contains documentation of surviving architectural remains and recovered evidence. They preserve partial spaces, architectural details, and material traces that allow the site to be reconstructed and reinterpreted.',
   D: 'Series D stands apart from previous series by making visible the archive’s creator\'s dual approach—as both archivist and artist. In this way, Series D embodies the coexistence of methodical record-keeping and artistic inquiry within a single practice by arranging trays and grouping pieces to create provisional relationships.',
 };
-const formatReference = (reference) => reference
-  .replace(/^File\s+/, '')
-  .replace(/^([A-D])\./, 'arch-up-01-$1-');
+const defaultMetadataBySeries = {
+  A: { size: 'Various formats', medium: 'Graphite on paper' },
+  B: { size: 'Various formats', medium: 'Color pencils on paper' },
+  C: { size: 'Various formats', medium: 'Color pencils on MDF' },
+  D: { size: 'Various formats', medium: 'Mixed media' },
+};
+const resolveMetadataValue = (record, key, fallback = '—') => {
+  const value = record?.dataset?.[key];
+  if (value && value.trim()) return value.trim();
+  const series = record?.dataset?.series;
+  return defaultMetadataBySeries[series]?.[key] || fallback;
+};
+const formatReference = (reference = '') => reference
+  .replace(/^File\s+/i, '')
+  .replace(/^([A-D])\./i, (_, letter) => `arch-up-01-${letter.toLowerCase()}-`)
+  .toLowerCase();
 
 recordButtons.forEach((record) => {
   const code = record.querySelector('span:first-child');
   if (code) code.textContent = formatReference(record.dataset.ref);
+
+  if (!record.dataset.size) {
+    record.dataset.size = defaultMetadataBySeries[record.dataset.series]?.size || 'Various formats';
+  }
+
+  if (!record.dataset.medium) {
+    record.dataset.medium = defaultMetadataBySeries[record.dataset.series]?.medium || 'Graphite on paper';
+  }
 });
 
 const selectRecord = (record) => {
@@ -48,6 +71,8 @@ const selectRecord = (record) => {
   detailReference.textContent = formatReference(record.dataset.ref);
   detailSeries.textContent = `${series} / ${seriesNames[series]}`;
   detailRecord.textContent = formatReference(record.dataset.ref);
+  detailSize.textContent = resolveMetadataValue(record, 'size', resolveMetadataValue(parentRecord, 'size'));
+  detailMedium.textContent = resolveMetadataValue(record, 'medium', resolveMetadataValue(parentRecord, 'medium'));
   breadcrumb.innerHTML = record.dataset.parent
     ? `Fonds 01 <span>/</span> Site 01 <span>/</span> Series ${series} <span>/</span> ${seriesNames[series]} <span>/</span> ${formatReference(parentRecord.dataset.ref)} <span>/</span> ${formatReference(record.dataset.ref)}`
     : `Fonds 01 <span>/</span> Site 01 <span>/</span> Series ${series} <span>/</span> ${seriesNames[series]}`;
@@ -90,6 +115,8 @@ const selectSeries = (series) => {
   detailReference.textContent = `SERIES ${series}`;
   detailSeries.textContent = `${series} / ${seriesNames[series]}`;
   detailRecord.textContent = `Series ${series} overview`;
+  detailSize.textContent = defaultMetadataBySeries[series]?.size || '—';
+  detailMedium.textContent = defaultMetadataBySeries[series]?.medium || '—';
   breadcrumb.innerHTML = `Fonds 01 <span>/</span> Site 01 <span>/</span> Series ${series} <span>/</span> ${seriesNames[series]}`;
   imageGrid.replaceChildren();
   imageGrid.hidden = true;
